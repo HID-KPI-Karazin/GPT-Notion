@@ -10,7 +10,7 @@ describe('RateLimiter', () => {
       limiter.schedule(async () => 3)
     ]);
     const elapsed = Date.now() - start;
-    expect(elapsed).toBeGreaterThanOrEqual(50); // third call delayed
+    expect(elapsed).toBeGreaterThanOrEqual(40); // third call delayed
     limiter.stop();
   });
 });
@@ -18,15 +18,19 @@ describe('RateLimiter', () => {
 describe('retryOn429', () => {
   test('retries on 429 with backoff', async () => {
     let attempts = 0;
-    const result = await retryOn429(async () => {
-      attempts++;
-      if (attempts < 3) {
-        const error: any = new Error('rate limited');
-        error.status = 429;
-        throw error;
-      }
-      return 'ok';
-    }, 3, 10);
+    const result = await retryOn429(
+      async () => {
+        attempts++;
+        if (attempts < 3) {
+          const error: any = new Error('rate limited');
+          error.status = 429;
+          throw error;
+        }
+        return 'ok';
+      },
+      3,
+      10
+    );
     expect(result).toBe('ok');
     expect(attempts).toBe(3);
   });

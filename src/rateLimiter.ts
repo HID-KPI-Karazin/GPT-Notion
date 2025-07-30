@@ -3,7 +3,10 @@ export class RateLimiter {
   private readonly interval: NodeJS.Timer;
   private queue: Array<() => void> = [];
 
-  constructor(private requestsPerMinute: number, private windowMs = 60000) {
+  constructor(
+    private requestsPerMinute: number,
+    private windowMs = 60000
+  ) {
     this.tokens = requestsPerMinute;
     const refillMs = windowMs / requestsPerMinute;
     this.interval = setInterval(() => this.refill(), refillMs);

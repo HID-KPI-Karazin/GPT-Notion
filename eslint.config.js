@@ -1,5 +1,6 @@
 const eslintPluginTs = require('@typescript-eslint/eslint-plugin');
 const eslintParserTs = require('@typescript-eslint/parser');
+const eslintPluginPrettier = require('eslint-plugin-prettier');
 
 module.exports = [
   {
@@ -8,9 +9,14 @@ module.exports = [
       parser: eslintParserTs,
       parserOptions: { project: './tsconfig.json' }
     },
-    plugins: { '@typescript-eslint': eslintPluginTs },
+    plugins: {
+      '@typescript-eslint': eslintPluginTs,
+      prettier: eslintPluginPrettier
+    },
     rules: {
-      'no-unused-vars': 'error'
+      'no-unused-vars': 'error',
+      'prettier/prettier': 'error'
     }
-  }
+  },
+  require('eslint-config-prettier')
 ];
