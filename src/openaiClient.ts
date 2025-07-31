@@ -1,6 +1,12 @@
 import OpenAI, { ChatCompletionMessageParam } from 'openai';
 import { RateLimiter, retryOn429 } from './rateLimiter';
 import { TokenCostLogger } from './tokenLogger';
+import { metrics } from '@opentelemetry/api';
+
+const meter = metrics.getMeter('gpt-notion');
+const requestCounter = meter.createCounter('openai_requests', {
+  description: 'Number of OpenAI API requests'
+});
 
 export class OpenAIClient {
   private client: OpenAI;
@@ -24,6 +30,7 @@ export class OpenAIClient {
   ): Promise<string> {
     return retryOn429(() =>
       this.limiter.schedule(async () => {
+        requestCounter.add(1);
         const res = await this.client.chat.completions.create({
           messages,
           model
