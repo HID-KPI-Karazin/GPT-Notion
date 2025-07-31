@@ -13,7 +13,6 @@ beforeEach(() => {
   delete process.env.PINECONE_INDEX;
 });
 
-
 test('env variables load with defaults', () => {
   const {
     OPENAI_API_KEY,
