@@ -27,7 +27,7 @@ export class OpenAIClient {
 
   async chat(
     messages: ChatCompletionMessageParam[],
-    model = 'gpt-4o-mini'
+    model = 'gpt-3.5-turbo'
   ): Promise<string> {
     return retryOn429(() =>
       this.limiter.schedule(async () => {
