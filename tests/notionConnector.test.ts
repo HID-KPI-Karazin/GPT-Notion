@@ -13,7 +13,6 @@ jest.mock('p-queue', () => ({
 class FakeNotion {
   blocks = {
     children: {
-
       list: jest.fn(async (opts: any) => {
         if (!opts.start_cursor) {
           return {
