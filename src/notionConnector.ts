@@ -1,4 +1,4 @@
-import { Client, collectPaginatedAPI } from '@notionhq/client';
+import { Client } from '@notionhq/client';
 import type { ListBlockChildrenResponse } from '@notionhq/client/build/src/api-endpoints';
 import type PQueue from 'p-queue';
 
@@ -39,10 +39,13 @@ export class NotionConnector {
   async collectAllChildren(
     blockId: string
   ): Promise<ListBlockChildrenResponse> {
-    const results = await collectPaginatedAPI(
-      (args) => this.listChildrenPaged(blockId, args.start_cursor),
-      { start_cursor: undefined }
-    );
+    const results: any[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await this.listChildrenPaged(blockId, cursor);
+      results.push(...page.results);
+      cursor = page.next_cursor ?? undefined;
+    } while (cursor);
     return { object: 'list', results } as ListBlockChildrenResponse;
   }
 
