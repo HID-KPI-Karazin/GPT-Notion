@@ -1,6 +1,6 @@
 export class RateLimiter {
   private tokens: number;
-  private readonly interval: NodeJS.Timer;
+  private readonly interval: NodeJS.Timeout;
   private queue: Array<() => void> = [];
 
   constructor(

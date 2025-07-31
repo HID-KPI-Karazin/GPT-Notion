@@ -1,4 +1,5 @@
-import OpenAI, { ChatCompletionMessageParam } from 'openai';
+import OpenAI from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { RateLimiter, retryOn429 } from './rateLimiter';
 import { TokenCostLogger } from './tokenLogger';
 import { metrics } from '@opentelemetry/api';
