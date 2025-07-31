@@ -1,12 +1,12 @@
 import { metrics } from '@opentelemetry/api';
 import {
-  ConsoleMetricExporter,
   MeterProvider,
   PeriodicExportingMetricReader
 } from '@opentelemetry/sdk-metrics';
+import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 
 export function initOTEL(): void {
-  const exporter = new ConsoleMetricExporter();
+  const exporter = new PrometheusExporter();
   const reader = new PeriodicExportingMetricReader({
     exporter,
     exportIntervalMillis: 1000
@@ -15,5 +15,5 @@ export function initOTEL(): void {
     readers: [reader]
   });
   metrics.setGlobalMeterProvider(provider);
-  console.log('OTEL exporter initialized (stdout)');
+  console.log('Prometheus exporter initialized on /metrics');
 }

@@ -1,5 +1,4 @@
 import { NotionConnector } from '../src/notionConnector';
-
 jest.mock('p-queue', () => ({
   __esModule: true,
   default: class {
@@ -13,7 +12,6 @@ jest.mock('p-queue', () => ({
 class FakeNotion {
   blocks = {
     children: {
-
       list: jest.fn(async (opts: any) => {
         if (!opts.start_cursor) {
           return {
