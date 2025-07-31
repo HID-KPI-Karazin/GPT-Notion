@@ -51,7 +51,12 @@ export async function retryOn429<T>(
       return await fn();
     } catch (err: any) {
       if (err?.status === 429 && attempt < retries) {
-        await new Promise((r) => setTimeout(r, delay));
+        const headerDelay = Number(
+          err?.headers?.['retry-after'] ??
+            err?.response?.headers?.['retry-after']
+        );
+        const wait = !Number.isNaN(headerDelay) ? headerDelay * 1000 : delay;
+        await new Promise((r) => setTimeout(r, wait));
         delay *= 2;
         continue;
       }

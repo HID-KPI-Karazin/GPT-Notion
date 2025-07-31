@@ -1,6 +1,7 @@
 import { Client, collectPaginatedAPI } from '@notionhq/client';
 import type { ListBlockChildrenResponse } from '@notionhq/client/build/src/api-endpoints';
 import type PQueue from 'p-queue';
+import { retryOn429 } from './rateLimiter';
 
 const MAX_BLOCKS = 1000;
 const MAX_SIZE = 500 * 1024; // bytes
@@ -27,12 +28,14 @@ export class NotionConnector {
     startCursor?: string
   ): Promise<ListBlockChildrenResponse> {
     const q = await this.getQueue();
-    return q.add(() =>
-      this.notion.blocks.children.list({
-        block_id: blockId,
-        page_size: 100,
-        start_cursor: startCursor
-      })
+    return retryOn429(() =>
+      q.add(() =>
+        this.notion.blocks.children.list({
+          block_id: blockId,
+          page_size: 100,
+          start_cursor: startCursor
+        })
+      )
     ) as Promise<ListBlockChildrenResponse>;
   }
 
@@ -55,8 +58,10 @@ export class NotionConnector {
       throw new Error('Payload exceeds 500KB');
     }
     const q = await this.getQueue();
-    await q.add(() =>
-      this.notion.blocks.children.append({ block_id: blockId, children })
+    await retryOn429(() =>
+      q.add(() =>
+        this.notion.blocks.children.append({ block_id: blockId, children })
+      )
     );
   }
 }
