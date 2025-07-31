@@ -16,4 +16,4 @@ external services like Chroma or Pinecone.
 ## Metrics
 
 OpenTelemetry metrics record token usage and request counts. Metrics are
-exported to stdout for scraping by a Prometheus side-car or other collector.
+exposed via a Prometheus exporter on `/metrics` for scraping.
