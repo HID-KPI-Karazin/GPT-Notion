@@ -1,60 +1,54 @@
-import { NotionConnector, collectPaginated } from '../src/notionConnector';
-import { RateLimiter } from '../src/rateLimiter';
+import { NotionConnector } from '../src/notionConnector';
+
+jest.mock('p-queue', () => ({
+  __esModule: true,
+  default: class {
+    constructor() {}
+    add<T>(fn: () => Promise<T> | T): Promise<T> {
+      return Promise.resolve().then(fn);
+    }
+  }
+}));
 
 class FakeNotion {
   blocks = {
     children: {
-      append: jest.fn().mockResolvedValue({})
+
+      list: jest.fn(async (opts: any) => {
+        if (!opts.start_cursor) {
+          return {
+            object: 'list',
+            results: [{ id: '1' }],
+            next_cursor: 'b',
+            has_more: true
+          };
+        }
+        return {
+          object: 'list',
+          results: [{ id: '2' }],
+          next_cursor: null,
+          has_more: false
+        };
+      }),
+      append: jest.fn(async () => ({}))
     }
-  };
-  databases = {
-    query: jest.fn()
   };
 }
 
-test('collectPaginated aggregates pages', async () => {
-  let call = 0;
-  // eslint-disable-next-line no-unused-vars
-  const fetch = async (cursor?: string) => {
-    const pages = [[1, 2], [3]];
-    const index = call++;
-    return {
-      results: pages[index] || [],
-      has_more: index < pages.length - 1,
-      next_cursor: index < pages.length - 1 ? `c${index}` : null
-    };
-  };
-  const result = await collectPaginated(fetch);
-  expect(result).toEqual([1, 2, 3]);
+test('listChildrenPaged returns page', async () => {
+  const conn = new NotionConnector('secret', new FakeNotion() as any);
+  const page1 = await conn.listChildrenPaged('1');
+  expect(page1.results.length).toBe(1);
+  const all = await conn.collectAllChildren('1');
+  expect(all.results.length).toBe(2);
 });
 
-test('appendBlocks enforces limits and chunks', async () => {
+test('appendChildrenChecked enforces limits', async () => {
   const fake = new FakeNotion();
-  const limiter = new RateLimiter(1000, 1000);
-  const connector = new NotionConnector('secret', limiter, fake as any);
-  const blocks = Array.from({ length: 150 }, () => ({
-    type: 'paragraph',
-    paragraph: { rich_text: [] }
-  }));
-  await connector.appendBlocks('p1', blocks);
-  expect(fake.blocks.children.append).toHaveBeenCalledTimes(2);
-  expect(fake.blocks.children.append.mock.calls[0][0].children.length).toBe(
-    100
-  );
-  expect(fake.blocks.children.append.mock.calls[1][0].children.length).toBe(50);
-  limiter.stop();
-});
-
-test('appendBlocks throws on oversized payload', async () => {
-  const fake = new FakeNotion();
-  const limiter = new RateLimiter(1000, 1000);
-  const connector = new NotionConnector('secret', limiter, fake as any);
-  const large = Array.from({ length: 1001 }, () => ({
-    type: 'paragraph',
-    paragraph: { rich_text: [] }
-  }));
-  await expect(connector.appendBlocks('p1', large)).rejects.toThrow(
-    'Payload exceeds Notion limits'
-  );
-  limiter.stop();
+  const conn = new NotionConnector('secret', fake as any);
+  await conn.appendChildrenChecked('1', [{ obj: 'block' }]);
+  expect(fake.blocks.children.append).toBeCalled();
+  await expect(
+    conn.appendChildrenChecked('1', new Array(1001).fill({}))
+  ).rejects.toThrow('Cannot write more than 1000 blocks');
 });
