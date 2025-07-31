@@ -1,42 +1,54 @@
 import { NotionConnector } from '../src/notionConnector';
 
-type ListResponse = {
-  results: any[];
-  has_more: boolean;
-  next_cursor?: string | null;
-};
+jest.mock('p-queue', () => ({
+  __esModule: true,
+  default: class {
+    constructor() {}
+    add<T>(fn: () => Promise<T> | T): Promise<T> {
+      return Promise.resolve().then(fn);
+    }
+  }
+}));
 
-class FakeClient {
-  public blocks = {
+class FakeNotion {
+  blocks = {
     children: {
-      list: jest.fn<Promise<ListResponse>, [any]>(),
-      append: jest.fn<Promise<void>, [any]>()
+
+      list: jest.fn(async (opts: any) => {
+        if (!opts.start_cursor) {
+          return {
+            object: 'list',
+            results: [{ id: '1' }],
+            next_cursor: 'b',
+            has_more: true
+          };
+        }
+        return {
+          object: 'list',
+          results: [{ id: '2' }],
+          next_cursor: null,
+          has_more: false
+        };
+      }),
+      append: jest.fn(async () => ({}))
     }
   };
 }
 
-test('listBlocks paginates until no more results', async () => {
-  const client = new FakeClient();
-  client.blocks.children.list
-    .mockResolvedValueOnce({
-      results: [{ id: 'a' }],
-      has_more: true,
-      next_cursor: 'b'
-    })
-    .mockResolvedValueOnce({
-      results: [{ id: 'b' }],
-      has_more: false
-    });
-  const connector = new NotionConnector('secret', client as any);
-  const blocks = await connector.listBlocks('123');
-  expect(blocks).toEqual([{ id: 'a' }, { id: 'b' }]);
+test('listChildrenPaged returns page', async () => {
+  const conn = new NotionConnector('secret', new FakeNotion() as any);
+  const page1 = await conn.listChildrenPaged('1');
+  expect(page1.results.length).toBe(1);
+  const all = await conn.collectAllChildren('1');
+  expect(all.results.length).toBe(2);
 });
 
-test('appendBlocks validates payload size', async () => {
-  const client = new FakeClient();
-  const connector = new NotionConnector('secret', client as any);
-  const big = Array(1001).fill({ type: 'p' });
-  await expect(connector.appendBlocks('id', big)).rejects.toThrow(
-    'payload too large'
-  );
+test('appendChildrenChecked enforces limits', async () => {
+  const fake = new FakeNotion();
+  const conn = new NotionConnector('secret', fake as any);
+  await conn.appendChildrenChecked('1', [{ obj: 'block' }]);
+  expect(fake.blocks.children.append).toBeCalled();
+  await expect(
+    conn.appendChildrenChecked('1', new Array(1001).fill({}))
+  ).rejects.toThrow('Cannot write more than 1000 blocks');
 });

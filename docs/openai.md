@@ -1,9 +1,11 @@
-# OpenAI Usage
+# OpenAI Pricing and Limits
 
-The project uses the official OpenAI Node SDK. The default model is `gpt-4o-mini` which offers a balance of cost and capability.
+This project uses the official OpenAI SDK. The default chat model is `gpt-4o-mini`.
 
-| Model       | Input / 1K tokens | Output / 1K tokens |
-| ----------- | ----------------- | ------------------ |
-| gpt-4o-mini | $0.0005           | $0.0015            |
+See <https://openai.com/pricing> for up-to-date pricing information. At the time
+of writing `gpt-4o-mini` costs about $0.005 per 1K input tokens and
+$0.015 per 1K output tokens.
 
-Pricing is subject to change. See [OpenAI pricing](https://openai.com/pricing) for the latest information.
+Rate limits vary by account tier. The `OpenAIClient` automatically retries with
+exponential backoff starting at 3000&nbsp;ms when it encounters HTTP 429 errors.
+Monitor usage closely to avoid unexpected costs.

@@ -4,15 +4,17 @@ const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
+  setupFiles: ['<rootDir>/tests/jest.setup.ts'],
   transform: {
-    '^.+\\.ts$': [
-      'ts-jest',
-      {
-        useESM: true
-      }
-    ]
+    '^.+\\.ts$': 'ts-jest'
   },
-  transformIgnorePatterns: ['/node_modules/(?!(p-queue)/)']
+  extensionsToTreatAsEsm: ['.ts'],
+  globals: {
+    'ts-jest': { useESM: true }
+  },
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1'
+  }
 };
 
 export default config;
