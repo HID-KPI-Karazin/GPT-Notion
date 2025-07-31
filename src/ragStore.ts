@@ -47,3 +47,82 @@ export class InMemoryRagStore implements IRagStore {
       .map((r) => ({ id: r.id, embedding: [], metadata: r.metadata }));
   }
 }
+
+export class ChromaRagStore implements IRagStore {
+  private collection: Promise<any>;
+
+  constructor(url: string, collectionName: string, client?: any) {
+    const ChromaClient = require('chromadb').ChromaClient;
+    const chroma = client ?? new ChromaClient({ path: url });
+    this.collection = chroma.getOrCreateCollection({ name: collectionName });
+  }
+
+  private async col(): Promise<any> {
+    return this.collection;
+  }
+
+  async upsert(
+    id: string,
+    embedding: number[],
+    metadata: unknown
+  ): Promise<void> {
+    const c = await this.col();
+    await c.upsert({
+      ids: [id],
+      embeddings: [embedding],
+      metadatas: [metadata]
+    });
+  }
+
+  async query(embedding: number[], topK: number): Promise<IRagItem[]> {
+    const c = await this.col();
+    const res = await c.query({
+      queryEmbeddings: [embedding],
+      nResults: topK,
+      include: ['metadatas', 'ids']
+    });
+    const ids: string[] = res.ids[0] || [];
+    const metas: unknown[] = res.metadatas[0] || [];
+    return ids.map((id: string, i: number) => ({
+      id,
+      embedding: [],
+      metadata: metas[i]
+    }));
+  }
+}
+
+export class PineconeRagStore implements IRagStore {
+  private index: any;
+
+  constructor(
+    apiKey: string,
+    environment: string,
+    indexName: string,
+    client?: any
+  ) {
+    const Pinecone = require('@pinecone-database/pinecone').Pinecone;
+    const pc = client ?? new Pinecone({ apiKey, environment });
+    this.index = pc.index(indexName);
+  }
+
+  async upsert(
+    id: string,
+    embedding: number[],
+    metadata: unknown
+  ): Promise<void> {
+    await this.index.upsert([{ id, values: embedding, metadata }]);
+  }
+
+  async query(embedding: number[], topK: number): Promise<IRagItem[]> {
+    const res = await this.index.query({
+      vector: embedding,
+      topK,
+      includeMetadata: true
+    });
+    return res.matches.map((m: any) => ({
+      id: m.id,
+      embedding: [],
+      metadata: m.metadata
+    }));
+  }
+}
