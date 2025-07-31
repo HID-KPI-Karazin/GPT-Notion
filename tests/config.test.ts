@@ -1,18 +1,34 @@
-import {
-  OPENAI_API_KEY,
-  NOTION_API_KEY,
-  NOTION_DATABASE_ID,
-  OTEL_EXPORTER,
-  OTEL_PROM_HOST,
-  OTEL_PROM_PORT,
-  RAG_PROVIDER,
-  CHROMA_URL,
-  PINECONE_API_KEY,
-  PINECONE_ENVIRONMENT,
-  PINECONE_INDEX
-} from '../src/config';
+beforeEach(() => {
+  jest.resetModules();
+  delete process.env.OPENAI_API_KEY;
+  delete process.env.NOTION_API_KEY;
+  delete process.env.NOTION_DATABASE_ID;
+  delete process.env.OTEL_EXPORTER;
+  delete process.env.OTEL_PROM_HOST;
+  delete process.env.OTEL_PROM_PORT;
+  delete process.env.RAG_PROVIDER;
+  delete process.env.CHROMA_URL;
+  delete process.env.PINECONE_API_KEY;
+  delete process.env.PINECONE_ENVIRONMENT;
+  delete process.env.PINECONE_INDEX;
+});
+
 
 test('env variables load with defaults', () => {
+  const {
+    OPENAI_API_KEY,
+    NOTION_API_KEY,
+    NOTION_DATABASE_ID,
+    OTEL_EXPORTER,
+    OTEL_PROM_HOST,
+    OTEL_PROM_PORT,
+    RAG_PROVIDER,
+    CHROMA_URL,
+    PINECONE_API_KEY,
+    PINECONE_ENVIRONMENT,
+    PINECONE_INDEX
+  } = require('../src/config');
+
   expect(OPENAI_API_KEY).toBe('');
   expect(NOTION_API_KEY).toBe('');
   expect(NOTION_DATABASE_ID).toBe('');
