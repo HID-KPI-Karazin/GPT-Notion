@@ -1,49 +1,63 @@
-import { Client, collectPaginatedAPI } from '@notionhq/client';
-import type { ListBlockChildrenResponse } from '@notionhq/client/build/src/api-endpoints';
-import type PQueue from 'p-queue';
+import { Client } from '@notionhq/client';
+import PQueue from 'p-queue';
+import { RateLimiter, retryOn429 } from './rateLimiter';
+
+export interface CursorResult<T> {
+  results: T[];
+  next_cursor?: string | null;
+  has_more: boolean;
+}
+
+export async function collectPaginated<T>(
+  // eslint-disable-next-line no-unused-vars
+  fetch: (cursor?: string) => Promise<CursorResult<T>>
+): Promise<T[]> {
+  const all: T[] = [];
+  let cursor: string | undefined;
+  do {
+    const res = await fetch(cursor);
+    all.push(...res.results);
+    cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
+  } while (cursor);
+  return all;
+}
 
 const MAX_BLOCKS = 1000;
 const MAX_SIZE = 500 * 1024; // bytes
 
 export class NotionConnector {
   private notion: Client;
-  private queue?: PQueue;
+  private queue: PQueue;
+  private limiter: RateLimiter;
 
   constructor(apiKey: string, client?: Client) {
     this.notion = client ?? new Client({ auth: apiKey });
+    this.queue = new PQueue({ interval: 1000, intervalCap: 3 });
+    this.limiter = new RateLimiter(3, 1000);
   }
 
-  private async getQueue(): Promise<PQueue> {
-    if (!this.queue) {
-      const mod = await import('p-queue');
-      const PQ = mod.default;
-      this.queue = new PQ({ concurrency: 1, intervalCap: 3, interval: 1000 });
-    }
-    return this.queue;
+  private async enqueue<T>(fn: () => Promise<T>): Promise<T> {
+    return retryOn429(() => this.limiter.schedule(() => this.queue.add(fn)));
   }
 
   async listChildrenPaged(
     blockId: string,
     startCursor?: string
-  ): Promise<ListBlockChildrenResponse> {
-    const q = await this.getQueue();
-    return q.add(() =>
+  ): Promise<CursorResult<any>> {
+    return this.enqueue(() =>
       this.notion.blocks.children.list({
         block_id: blockId,
         page_size: 100,
         start_cursor: startCursor
       })
-    ) as Promise<ListBlockChildrenResponse>;
+    );
   }
 
-  async collectAllChildren(
-    blockId: string
-  ): Promise<ListBlockChildrenResponse> {
-    const results = await collectPaginatedAPI(
-      (args) => this.listChildrenPaged(blockId, args.start_cursor),
-      { start_cursor: undefined }
+  async collectAllChildren(blockId: string): Promise<CursorResult<any>> {
+    const results = await collectPaginated((cursor) =>
+      this.listChildrenPaged(blockId, cursor)
     );
-    return { object: 'list', results } as ListBlockChildrenResponse;
+    return { object: 'list', results } as unknown as CursorResult<any>;
   }
 
   async appendChildrenChecked(blockId: string, children: any[]): Promise<void> {
@@ -54,8 +68,7 @@ export class NotionConnector {
     if (size > MAX_SIZE) {
       throw new Error('Payload exceeds 500KB');
     }
-    const q = await this.getQueue();
-    await q.add(() =>
+    await this.enqueue(() =>
       this.notion.blocks.children.append({ block_id: blockId, children })
     );
   }
