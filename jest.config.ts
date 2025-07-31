@@ -5,8 +5,14 @@ const config: Config = {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   transform: {
-    '^.+\\.ts$': 'ts-jest'
-  }
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        useESM: true
+      }
+    ]
+  },
+  transformIgnorePatterns: ['/node_modules/(?!(p-queue)/)']
 };
 
 export default config;

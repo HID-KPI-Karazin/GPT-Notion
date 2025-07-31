@@ -24,7 +24,10 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-metrics": "^2.0.1",
+    "@opentelemetry/exporter-prometheus": "^0.203.0",
     "dotenv": "^10.0.0",
-    "openai": "^5.11.0"
+    "openai": "^5.11.0",
+    "@notionhq/client": "^4.0.1",
+    "p-queue": "^8.1.0"
   }
 }
