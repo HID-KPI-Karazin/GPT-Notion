@@ -5,9 +5,12 @@ and ChatGPT. The flow is illustrated below.
 
 ```mermaid
 graph TD
-    A[Notion] -->|SyncCommand| B(RAG Store)
-    B -->|Context| C[GPT]
-    C -->|Response| A
+    A[Notion] -->|API| N(NotionConnector)
+    N -->|Queue| Q[p-queue]
+    Q -->|Blocks| R(RAG Store)
+    R -->|Context| O(OpenAIClient)
+    O -->|Response| A
+    O -->|Metrics| M[Prometheus]
 ```
 
 The RAG store defaults to an in-memory implementation but can be replaced with
