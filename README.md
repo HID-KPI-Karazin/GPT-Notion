@@ -17,3 +17,7 @@ via a Prometheus exporter on `http://localhost:9464/metrics` when
 
 See [docs/security.md](docs/security.md) for security guidelines. Pricing and
 model limits are documented in [docs/openai.md](docs/openai.md).
+
+## Linting
+
+Run `npm run lint` to check the codebase with ESLint.
